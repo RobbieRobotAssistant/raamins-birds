@@ -122,3 +122,4 @@ are labelled "AI illustration" in the UI.
 
 See **[DEPLOY.md](DEPLOY.md)** — a decision-free, PowerShell-native runbook for
 deploying both components from a Windows PC.
+# Test auto-deploy
