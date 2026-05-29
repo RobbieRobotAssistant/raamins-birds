@@ -38,11 +38,7 @@ export default function BirdApp({
 
       <main className="mt-8">
         {view === "collage" && (
-          <CollageView
-            window={window}
-            enrichment={enr}
-            onSelect={setSelectedSci}
-          />
+          <CollageView window={window} onSelect={setSelectedSci} />
         )}
         {view === "stats" && (
           <StatsView window={window} onSelect={setSelectedSci} />
