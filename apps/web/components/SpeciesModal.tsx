@@ -154,14 +154,6 @@ export default function SpeciesModal({
                   >
                     wikipedia ↗
                   </a>
-                  <a
-                    href={r.ebirdUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="label !text-[0.75rem] text-ink underline underline-offset-4 hover:text-accent"
-                  >
-                    ebird ↗
-                  </a>
                 </div>
               </>
             )}

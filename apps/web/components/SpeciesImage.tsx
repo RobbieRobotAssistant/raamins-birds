@@ -23,7 +23,7 @@ export default function SpeciesImage({
         <img
           src={resolved.imageUrl}
           alt={comName}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain"
           loading="lazy"
         />
         {showAiBadge && resolved.imageIsAi && (

@@ -58,15 +58,25 @@ export interface ResolvedSpecies {
   genus: string;
 }
 
+// Convert sci_name to slug for cutout image lookup
+function sciToSlug(sci: string): string {
+  return sci.toLowerCase().trim().replace(/\s+/g, "-");
+}
+
 // Merge stored enrichment with computed fallbacks. Links and genus always
 // resolve from the scientific name even with no enrichment record.
+// When no enrichment image exists, falls back to cutout PNG if available.
 export function resolveSpecies(
   map: EnrichmentMap,
   sci: string
 ): ResolvedSpecies {
   const e = map[sci] ?? {};
+  // Use enrichment image, or fall back to cutout PNG if it exists
+  const fallbackImageUrl = e.imageUrl ?? `/birds/${sciToSlug(sci)}.png`;
+  // We'll verify existence at runtime via CSS/JS; here we just pass the URL
+  // and let SpeciesImage handle missing by showing placeholder
   return {
-    imageUrl: e.imageUrl,
+    imageUrl: fallbackImageUrl,
     imageIsAi: e.imageIsAi ?? false,
     wikiSummary: e.wikiSummary,
     wikiUrl: e.wikiUrl ?? wikiUrl(sci),
