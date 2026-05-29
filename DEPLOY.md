@@ -28,7 +28,10 @@ $PI            = "rmostag1@simurgh.local"   # SSH target for the Raspberry Pi
 $PI_HOME       = "/home/rmostag1"           # the Pi user's home directory
 
 # --- Public hostnames ---
-$API_HOSTNAME  = "api.birds.example.com"    # Cloudflare Tunnel hostname for the API
+# IMPORTANT: API_HOSTNAME must be a SINGLE-level subdomain (e.g. birdsapi.example.com),
+# NOT two levels (api.birds.example.com). Cloudflare's free Universal SSL only
+# covers *.example.com (one level); a two-level host has no cert and fails TLS.
+$API_HOSTNAME  = "birdsapi.example.com"     # Cloudflare Tunnel hostname for the API
 $VERCEL_DOMAIN = "birds.example.com"         # public site domain (the frontend)
 
 # --- Derived (leave as-is) ---
