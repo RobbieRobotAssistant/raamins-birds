@@ -217,9 +217,10 @@ export default function CollageView({
   enrichment: EnrichmentMap;
   onSelect: (sci: string) => void;
 }) {
-  // Use stats/top-species to get species - matches Stats view exactly
+  // Show every species detected in the window (capped at the Pi API max of
+  // 100). Only species with a cutout get placed; the rest are simply omitted.
   const { data: topData, loading, error } = useFetch<TopSpecies[]>(
-    `/api/stats/top-species?window=${win}&limit=50`
+    `/api/stats/top-species?window=${win}&limit=100`
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
