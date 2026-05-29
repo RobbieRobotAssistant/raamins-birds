@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background-color: theme("colors.paper");
+  color: theme("colors.ink");
+}
+
+body {
+  font-family: theme("fontFamily.sans");
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #e7e1d2;
+}
+
+/* Field-notes label: small, spaced, uppercase, monospace. */
+.label {
+  font-family: theme("fontFamily.mono");
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: theme("colors.muted");
+}
+
+.hairline {
+  border-color: theme("colors.line");
+}
+
+.serif {
+  font-family: theme("fontFamily.serif");
+}

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# Local mock artifacts
+apps/pi-api/scripts/mock-birds.db
+apps/pi-api/scripts/mock-songs/
+
+# image-gen local output (dry-run / no-token writes)
+scripts/image-gen/out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code per-user local settings
+.claude/settings.local.json

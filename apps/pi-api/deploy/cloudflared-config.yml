@@ -1,0 +1,17 @@
+# cloudflared named-tunnel config for the Pi API.
+# Installed to /home/rmostag1/.cloudflared/config.yml (see DEPLOY.md).
+#
+# Replace the two placeholders during deploy:
+#   <TUNNEL_UUID>          the UUID printed by `cloudflared tunnel create`
+#   <API_PUBLIC_HOSTNAME>  e.g. api.birds.example.com
+#
+# This routes public HTTPS for the hostname to the local uvicorn on :8000,
+# so there is NO router port-forwarding and the home IP stays hidden.
+
+tunnel: <TUNNEL_UUID>
+credentials-file: /home/rmostag1/.cloudflared/<TUNNEL_UUID>.json
+
+ingress:
+  - hostname: <API_PUBLIC_HOSTNAME>
+    service: http://127.0.0.1:8000
+  - service: http_status:404

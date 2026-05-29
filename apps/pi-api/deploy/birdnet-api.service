@@ -1,0 +1,23 @@
+[Unit]
+Description=BirdNET-Pi Public API (FastAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rmostag1
+Group=rmostag1
+WorkingDirectory=/home/rmostag1/birdnet-public/apps/pi-api
+EnvironmentFile=/home/rmostag1/birdnet-public/apps/pi-api/.env
+ExecStart=/home/rmostag1/birdnet-public/apps/pi-api/.venv/bin/python -m app.main
+Restart=on-failure
+RestartSec=3
+
+# Hardening: this service only ever reads BirdNET-Pi data.
+ProtectSystem=strict
+ProtectHome=read-only
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,4 @@
+# Drop manually-provided species illustrations here, named by slug:
+#   <scientific-name-lowercased-with-hyphens>.<png|jpg|jpeg|webp>
+# Example: Passer domesticus  ->  passer-domesticus.jpg
+# The next `npm run generate` uploads them to Blob and records the mapping.
