@@ -121,6 +121,27 @@ To add a new species illustration:
 2. Generate image with field-guide prompt
 3. Run processing: `./process-pending.sh`
 
+## Species Text Enrichment
+
+Per-species text — a one-line Wikipedia description and the **genus** — is
+fetched **offline** and stored as `species.json` in Vercel Blob. The frontend
+reads it at runtime, so new text appears **without a redeploy**.
+
+- **Genus** comes from Wikidata (authoritative taxonomy walk), never guessed by
+  splitting the name.
+- **Description** is the first sentence of the Wikipedia summary.
+- **Scientific name** stays as BirdNET reported it (the detector's own ID).
+
+It runs automatically via a scheduled GitHub Action
+(`.github/workflows/enrich.yml`) that executes the text-only enricher in
+`scripts/image-gen/` and writes `species.json` to Blob. Idempotent: only species
+without text are fetched.
+
+One-time setup: create a Vercel Blob store; add `BLOB_READ_WRITE_TOKEN` and
+`BIRD_API_URL` as GitHub Action secrets; run the Action once; set the resulting
+`species.json` URL as `SPECIES_DATA_URL` in Vercel (and as an Action secret for
+idempotency). Images are handled separately by the cutout pipeline.
+
 ## Design Choices
 
 ### Collage Visualization

@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
+
 import type { ResolvedSpecies } from "@/lib/format";
 
 // Renders the species illustration, or a common-name text placeholder when no
-// image is available yet. The placeholder is intentionally plain: it's the
-// signal that an image still needs to be generated/uploaded for this species.
+// image is available (or the image fails to load). resolveSpecies optimistically
+// points at /birds/<slug>.png; if that cutout doesn't exist yet, the <img>
+// errors and we fall back to the placeholder instead of showing a broken icon.
+// The placeholder is the signal that a cutout still needs to be made.
 export default function SpeciesImage({
   resolved,
   comName,
@@ -16,7 +20,11 @@ export default function SpeciesImage({
   className?: string;
   showAiBadge?: boolean;
 }) {
-  if (resolved.imageUrl) {
+  // Track the src that failed, so switching species (new src) retries cleanly.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const showImage = resolved.imageUrl && failedSrc !== resolved.imageUrl;
+
+  if (showImage) {
     return (
       <div className={`relative overflow-hidden bg-[#ece8dd] ${className}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -25,6 +33,7 @@ export default function SpeciesImage({
           alt={comName}
           className="h-full w-full object-contain"
           loading="lazy"
+          onError={() => setFailedSrc(resolved.imageUrl ?? null)}
         />
         {showAiBadge && resolved.imageIsAi && (
           <span className="absolute bottom-1 right-1 bg-paper/85 px-1.5 py-0.5 font-mono text-[0.5625rem] uppercase tracking-wider text-muted">

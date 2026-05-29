@@ -81,6 +81,8 @@ export function resolveSpecies(
     wikiSummary: e.wikiSummary,
     wikiUrl: e.wikiUrl ?? wikiUrl(sci),
     ebirdUrl: e.ebirdUrl ?? ebirdUrl(sci),
-    genus: e.genus ?? genusOf(sci),
+    // Genus comes only from enrichment (Wikidata); never guessed by splitting
+    // the scientific name. Empty when not yet enriched.
+    genus: e.genus ?? "",
   };
 }

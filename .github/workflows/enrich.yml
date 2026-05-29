@@ -1,0 +1,38 @@
+name: Enrich species text
+
+# Pulls a one-line Wikipedia description + Wikidata genus for any newly-detected
+# species and writes species.json to Vercel Blob. The frontend reads Blob at
+# runtime (~5-min cache), so new text appears with NO redeploy.
+
+on:
+  schedule:
+    - cron: "17 * * * *" # hourly, at :17
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+# Avoid overlapping runs racing on the same Blob object.
+concurrency:
+  group: enrich
+  cancel-in-progress: false
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: scripts/image-gen
+        run: npm ci
+
+      - name: Run enrichment
+        working-directory: scripts/image-gen
+        env:
+          BIRD_API_URL: ${{ secrets.BIRD_API_URL }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          # Optional but recommended: set after the first run for idempotency.
+          SPECIES_DATA_URL: ${{ secrets.SPECIES_DATA_URL }}
+        run: npm run generate

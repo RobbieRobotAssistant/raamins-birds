@@ -95,7 +95,7 @@ export default function SpeciesModal({
                 <p className="font-mono text-sm italic text-muted">
                   {data.sci_name}
                 </p>
-                <p className="label mt-1">genus · {data.genus}</p>
+                <p className="label mt-1">genus · {r.genus || "—"}</p>
 
                 <div className="mt-5 grid grid-cols-3 gap-3 border-y hairline py-4">
                   <Stat label="all-time" value={String(data.all_time_count)} />

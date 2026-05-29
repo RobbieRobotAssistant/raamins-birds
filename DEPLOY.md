@@ -229,37 +229,27 @@ curl.exe -s "https://$VERCEL_DOMAIN" | Select-String "$SITE_NAME"
 
 ---
 
-## STEP 5 — (Optional, later) Publish species images
+## STEP 5 — (One-time) Species text enrichment
 
-Run this only once there are detections AND you want real illustrations. Until
-then the site shows clean common-name text placeholders.
+Per-species text (a one-line Wikipedia description + Wikidata genus) is produced
+by a scheduled **GitHub Action** (`.github/workflows/enrich.yml`) that writes
+`species.json` to Vercel Blob. The frontend reads it at runtime, so new species
+get text with **no redeploy**. This is browser/console setup, not a script:
 
-```powershell
-# 5a. Install deps
-cd "$REPO\scripts\image-gen"
-npm install
-```
+1. **Create a Vercel Blob store** — Vercel → Storage → Create → Blob → connect it
+   to the project. Copy its `BLOB_READ_WRITE_TOKEN`.
+2. **Add GitHub Action secrets** — repo → Settings → Secrets and variables →
+   Actions: `BLOB_READ_WRITE_TOKEN`, and `BIRD_API_URL` (= `$API_BASE_URL`).
+3. **Run it once** — repo → Actions → "Enrich species text" → Run workflow. The
+   log prints `species.json -> https://<store>.public.blob.vercel-storage.com/species.json`.
+4. **Set `SPECIES_DATA_URL`** to that URL in Vercel (Settings → Environment
+   Variables → Production) and add it as a GitHub Action secret too (for
+   idempotency). Redeploy once so Vercel picks up the new env var.
 
-```powershell
-# 5b. Put any illustrations you have into provided-images\ named by slug:
-#     <scientific-name-lowercased-hyphenated>.jpg   e.g. passer-domesticus.jpg
-#     (Species without one stay as text placeholders.)
+After this, the Action runs hourly and new species are enriched automatically.
 
-# 5c. Run the pipeline. Paste the Blob token when prompted by the env line.
-$env:BIRD_API_URL = "$API_BASE_URL"
-$env:BLOB_READ_WRITE_TOKEN = Read-Host "Paste BLOB_READ_WRITE_TOKEN"
-npm run generate
-cd $REPO
-```
-
-The run prints `species.json -> https://<store>.public.blob.vercel-storage.com/species.json`.
-Set that as `$SPECIES_DATA_URL`, add it to Vercel, and redeploy:
-
-```powershell
-$SPECIES_DATA_URL = "https://<store>.public.blob.vercel-storage.com/species.json"  # from the run output
-"$SPECIES_DATA_URL" | vercel env add SPECIES_DATA_URL production
-cd "$REPO\apps\web"; vercel --prod; cd $REPO
-```
+> Species **images** are handled separately by the cutout pipeline (committed to
+> the repo, auto-deployed) — not by this step.
 
 ---
 
