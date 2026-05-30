@@ -3,47 +3,45 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useFetch } from "@/lib/useFetch";
-import type { Detection, TopSpecies, Window } from "@/lib/types";
+import type { TopSpecies, Window } from "@/lib/types";
 import { EmptyState, ErrorState, LoadingGrid } from "./States";
 import { CUTOUTS, type CutoutEntry } from "@/lib/cutouts.generated";
 
 /**
- * Raster-bitmask spiral-pack collage (responsive).
+ * Frequency-weighted, ellipse-biased spiral collage.
  *
- * Birds are packed from the centre outward, nesting into each other's
- * silhouettes via per-species alpha masks. The packing canvas WIDTH is bound to
- * the viewport bucket, so the cluster goes portrait on phones and landscape on
- * desktop. A final scale-to-fit step makes the cluster exactly fill the measured
- * width and caps its height. Packing is keyed on the breakpoint bucket, so the
- * arrangement only re-flows when crossing mobile/tablet/desktop — not on every
- * resize pixel (scale-to-fit absorbs minor width changes cheaply).
+ * Sizing (after Twarner491's AvianVisitors): each species' area is a sub-linear
+ * function of its detection count (count^0.65), normalized against a viewport
+ * area BUDGET rather than hard-clamped — so a very common bird looms over a rare
+ * one without flattening the hierarchy or blowing out the layout. A floor keeps
+ * rare species from becoming specks.
+ *
+ * Packing: center-out spiral (biggest/most-detected at the centre), but the
+ * search is stretched into an ELLIPSE whose orientation follows the breakpoint —
+ * wide on desktop (landscape screens), TALL on mobile (portrait phones). A final
+ * scale-to-fit maps the packed cluster to the measured width and caps height.
+ * Re-packs only when the breakpoint bucket or species set changes.
  */
 
 const CELL_PX = 8;
+const FREQ_EXP = 0.65; // sub-linear exponent for count -> size
 
 type Bucket = "m" | "t" | "d";
 
-// Per-breakpoint base bird size (long edge, px) + per-recency scale range.
-function bucketConfig(bucket: Bucket): {
-  base: number;
-  scaleMin: number;
-  scaleMax: number;
-} {
-  if (bucket === "m") return { base: 105, scaleMin: 0.72, scaleMax: 1.0 };
-  if (bucket === "t") return { base: 140, scaleMin: 0.74, scaleMax: 1.08 };
-  return { base: 170, scaleMin: 0.78, scaleMax: 1.18 };
+interface BucketCfg {
+  refW: number; // reference canvas width for the area budget
+  refH: number; // reference canvas height
+  ex: number; // spiral x-stretch (ellipse bias)
+  ey: number; // spiral y-stretch
 }
 
-// Representative canvas width the arrangement is packed at (scale-to-fit then
-// adapts it to the real measured width).
-function bucketWidth(bucket: Bucket): number {
-  if (bucket === "m") return 390;
-  if (bucket === "t") return 760;
-  return 1024;
+function bucketCfg(b: Bucket): BucketCfg {
+  if (b === "m") return { refW: 390, refH: 660, ex: 1.0, ey: 1.9 }; // tall ellipse
+  if (b === "t") return { refW: 760, refH: 720, ex: 1.35, ey: 1.0 };
+  return { refW: 1024, refH: 620, ex: 2.1, ey: 1.0 }; // wide ellipse
 }
 
 type Placed = {
-  rowid: number;
   sci: string;
   com: string;
   src: string;
@@ -52,8 +50,6 @@ type Placed = {
   w: number;
   h: number;
 };
-
-type Detected = Detection;
 
 interface PackResult {
   placed: Placed[];
@@ -70,51 +66,51 @@ function resolveImg(sci: string): string | null {
   return CUTOUTS[slug] ? `/birds/${slug}.png` : null;
 }
 
-// Pack birds into a width-bounded canvas; returns placements normalized to the
-// cluster's bounding box, plus the bbox size (reference px).
-function packBirds(
-  birds: Detected[],
-  canvasWidthPx: number,
-  cfg: { base: number; scaleMin: number; scaleMax: number }
-): PackResult {
+function packBirds(species: TopSpecies[], cfg: BucketCfg): PackResult {
   const empty: PackResult = { placed: [], width: 0, height: 0 };
-  if (canvasWidthPx < 50 || birds.length === 0) return empty;
 
-  const cols = Math.max(8, Math.floor(canvasWidthPx / CELL_PX));
-  const rows = Math.max(cols, birds.length * 14);
-  const occ = new Uint8Array(cols * rows);
-  const centreCol = Math.floor(cols / 2);
-  const centreRow = Math.floor(rows / 2);
+  // Keep species that have a cutout; most-detected first (biggest -> centre).
+  const items = species
+    .filter((s) => CUTOUTS[sciToSlug(s.sci_name)])
+    .sort((a, b) => b.count - a.count);
+  if (items.length === 0) return empty;
 
-  type Prepared = {
-    bird: Detected;
+  // --- Frequency-weighted, budget-normalized sizing ---
+  const scores = items.map((s) => Math.pow(Math.max(1, s.count), FREQ_EXP));
+  const sumS = scores.reduce((a, b) => a + b, 0);
+  const n = items.length;
+  // Fewer species -> larger share of the canvas; more species -> smaller.
+  const budgetFraction = Math.max(0.18, Math.min(0.3, 0.3 - (n - 6) * 0.006));
+  const budget = cfg.refW * cfg.refH * budgetFraction;
+  const rawArea = scores.map((s) => (budget / sumS) * s);
+  const maxArea = Math.max(...rawArea);
+  const minArea = 0.14 * maxArea; // floor: smallest ~37% the width of the biggest
+
+  type Sized = {
+    sci: string;
+    com: string;
     src: string;
+    pxW: number;
+    pxH: number;
     cells: { x: number; y: number }[];
     cellW: number;
     cellH: number;
-    pxW: number;
-    pxH: number;
   };
-  const prepared: Prepared[] = [];
 
-  birds.forEach((bird, i) => {
-    const entry: CutoutEntry | undefined = CUTOUTS[sciToSlug(bird.sci_name)];
-    const src = resolveImg(bird.sci_name);
-    if (!entry || !src) return; // skip species without a cutout
-
-    // Newer/most-detected (lower index) render larger.
-    const denom = Math.max(1, birds.length - 1);
-    const t = birds.length === 1 ? 1 : 1 - i / denom;
-    const scale = cfg.scaleMin + (cfg.scaleMax - cfg.scaleMin) * t;
-    const long = Math.max(entry.w, entry.h);
-    let k = (cfg.base * scale) / long;
-    k = Math.min(k, (canvasWidthPx * 0.9) / entry.w); // never exceed canvas
-    const pxW = Math.max(1, Math.round(entry.w * k));
-    const pxH = Math.max(1, Math.round(entry.h * k));
-
+  const sized: Sized[] = [];
+  items.forEach((s, i) => {
+    const entry = CUTOUTS[sciToSlug(s.sci_name)] as CutoutEntry;
+    const src = resolveImg(s.sci_name);
+    if (!entry || !src) return;
     const mh = entry.mask.length;
     const mw = entry.mask[0]?.length ?? 0;
     if (!mw || !mh) return;
+
+    const ar = entry.w / entry.h;
+    const area = Math.max(minArea, rawArea[i]);
+    const pxW = Math.max(1, Math.round(Math.sqrt(area * ar)));
+    const pxH = Math.max(1, Math.round(Math.sqrt(area / ar)));
+
     const cellW = Math.max(1, Math.ceil(pxW / CELL_PX));
     const cellH = Math.max(1, Math.ceil(pxH / CELL_PX));
     const cells: { x: number; y: number }[] = [];
@@ -125,40 +121,54 @@ function packBirds(
         if (entry.mask[my][mx]) cells.push({ x: cx, y: cy });
       }
     }
-    if (cells.length) prepared.push({ bird, src, cells, cellW, cellH, pxW, pxH });
+    if (cells.length) {
+      sized.push({ sci: s.sci_name, com: s.com_name, src, pxW, pxH, cells, cellW, cellH });
+    }
   });
+  if (sized.length === 0) return empty;
 
-  const fits = (col: number, row: number, p: Prepared): boolean => {
-    if (col < 0 || row < 0) return false;
-    if (col + p.cellW >= cols || row + p.cellH >= rows) return false;
-    for (const c of p.cells) {
+  // --- Ellipse-biased center-out spiral ---
+  const totalCells = sized.reduce((a, s) => a + s.cellW * s.cellH, 0);
+  const side = Math.max(80, Math.ceil(Math.sqrt(totalCells) * 5));
+  const cols = side;
+  const rows = side;
+  const occ = new Uint8Array(cols * rows);
+  const cc = Math.floor(cols / 2);
+  const cr = Math.floor(rows / 2);
+
+  const fits = (col: number, row: number, s: Sized): boolean => {
+    if (col < 0 || row < 0 || col + s.cellW >= cols || row + s.cellH >= rows) {
+      return false;
+    }
+    for (const c of s.cells) {
       if (occ[(row + c.y) * cols + (col + c.x)]) return false;
     }
     return true;
   };
-  const mark = (col: number, row: number, p: Prepared) => {
-    for (const c of p.cells) occ[(row + c.y) * cols + (col + c.x)] = 1;
+  const mark = (col: number, row: number, s: Sized) => {
+    for (const c of s.cells) occ[(row + c.y) * cols + (col + c.x)] = 1;
   };
 
-  const maxRadius = Math.max(cols, rows);
+  const maxR = Math.max(cols, rows);
   const placed: Placed[] = [];
-
-  for (let i = 0; i < prepared.length; i++) {
-    const p = prepared[i];
-    const anchorCol = centreCol - Math.floor(p.cellW / 2);
-    const anchorRow = centreRow - Math.floor(p.cellH / 2);
+  for (let i = 0; i < sized.length; i++) {
+    const s = sized[i];
+    const aCol = cc - Math.floor(s.cellW / 2);
+    const aRow = cr - Math.floor(s.cellH / 2);
     let spot: { c: number; r: number } | null = null;
 
-    if (i === 0 && fits(anchorCol, anchorRow, p)) {
-      spot = { c: anchorCol, r: anchorRow };
+    if (i === 0 && fits(aCol, aRow, s)) {
+      spot = { c: aCol, r: aRow };
     } else {
-      for (let radius = 0; radius <= maxRadius && !spot; radius += 1) {
-        const samples = Math.max(4, radius * 8);
-        for (let s = 0; s < samples; s++) {
-          const theta = (s / samples) * Math.PI * 2;
-          const c = anchorCol + Math.round(Math.cos(theta) * radius);
-          const r = anchorRow + Math.round(Math.sin(theta) * radius);
-          if (fits(c, r, p)) {
+      for (let radius = 0; radius <= maxR && !spot; radius++) {
+        const samples = Math.max(8, radius * 8);
+        for (let k = 0; k < samples; k++) {
+          const th = (k / samples) * Math.PI * 2;
+          // Ellipse bias: stretch the search per axis so the cluster elongates
+          // horizontally (desktop) or vertically (mobile).
+          const c = aCol + Math.round(Math.cos(th) * radius * cfg.ex);
+          const r = aRow + Math.round(Math.sin(th) * radius * cfg.ey);
+          if (fits(c, r, s)) {
             spot = { c, r };
             break;
           }
@@ -166,19 +176,17 @@ function packBirds(
       }
     }
     if (!spot) continue;
-    mark(spot.c, spot.r, p);
+    mark(spot.c, spot.r, s);
     placed.push({
-      rowid: p.bird.rowid,
-      sci: p.bird.sci_name,
-      com: p.bird.com_name,
-      src: p.src,
+      sci: s.sci,
+      com: s.com,
+      src: s.src,
       x: spot.c * CELL_PX,
       y: spot.r * CELL_PX,
-      w: p.pxW,
-      h: p.pxH,
+      w: s.pxW,
+      h: s.pxH,
     });
   }
-
   if (placed.length === 0) return empty;
 
   let minX = Infinity;
@@ -224,34 +232,19 @@ export default function CollageView({
   const bucket: Bucket = measuredW < 500 ? "m" : measuredW < 900 ? "t" : "d";
   const measured = measuredW >= 50;
 
-  const detections = useMemo<Detected[]>(() => {
-    if (!topData) return [];
-    return [...topData]
-      .sort((a, b) => b.count - a.count)
-      .map((s, i) => ({
-        rowid: -i - 1,
-        sci_name: s.sci_name,
-        com_name: s.com_name,
-        confidence: 1,
-        date: "",
-        time: "",
-        timestamp: "",
-        recording_url: "",
-      }));
-  }, [topData]);
-
   // Arrangement: re-pack only on species-set or breakpoint change.
   const pack = useMemo<PackResult | null>(() => {
-    if (!detections.length || !measured) return null;
-    return packBirds(detections, bucketWidth(bucket), bucketConfig(bucket));
-  }, [detections, bucket, measured]);
+    if (!topData || topData.length === 0 || !measured) return null;
+    return packBirds(topData, bucketCfg(bucket));
+  }, [topData, bucket, measured]);
 
-  // Scale the packed cluster to fit the measured width; cap height at 85vh.
+  // Scale the packed cluster to fill the measured width; cap height at 85vh.
   const layout = useMemo(() => {
     if (!pack || pack.placed.length === 0) return null;
     const avail = Math.min(measuredW, 1024);
     const maxH = viewportH * 0.85;
-    const scale = Math.min(avail / pack.width, maxH / pack.height, 1);
+    // Fit to width or height (whichever binds); never upscale past reference.
+    const scale = Math.min((avail * 0.98) / pack.width, maxH / pack.height, 1);
     return {
       scale,
       contentH: pack.height * scale,
@@ -279,7 +272,7 @@ export default function CollageView({
         <div className="relative" style={{ height: layout.contentH }}>
           {pack.placed.map((p) => (
             <button
-              key={p.rowid}
+              key={p.sci}
               onClick={() => onSelect(p.sci)}
               title={p.com}
               className="absolute select-none transition-transform duration-200 hover:z-10 hover:scale-[1.04]"
