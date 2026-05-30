@@ -36,7 +36,7 @@ interface BucketCfg {
 }
 
 function bucketCfg(b: Bucket): BucketCfg {
-  if (b === "m") return { refW: 390, refH: 660, ex: 1.0, ey: 1.9 }; // tall ellipse
+  if (b === "m") return { refW: 390, refH: 620, ex: 1.0, ey: 1.5 }; // tall ellipse
   if (b === "t") return { refW: 760, refH: 720, ex: 1.35, ey: 1.0 };
   return { refW: 1024, refH: 620, ex: 2.1, ey: 1.0 }; // wide ellipse
 }
@@ -242,9 +242,10 @@ export default function CollageView({
   const layout = useMemo(() => {
     if (!pack || pack.placed.length === 0) return null;
     const avail = Math.min(measuredW, 1024);
-    const maxH = viewportH * 0.85;
-    // Fit to width or height (whichever binds); never upscale past reference.
-    const scale = Math.min((avail * 0.98) / pack.width, maxH / pack.height, 1);
+    const maxH = viewportH * 0.9;
+    // Fill the available width; back off only if that would exceed the height
+    // budget. Capped at 1.4x so birds don't balloon when few species are shown.
+    const scale = Math.min((avail * 0.99) / pack.width, maxH / pack.height, 1.4);
     return {
       scale,
       contentH: pack.height * scale,
