@@ -12,6 +12,17 @@ export default function Footer() {
           raamin mostaghimi
         </a>
       </p>
+      <p className="chrome mt-2">
+        heavily inspired by and extended from{" "}
+        <a
+          href="https://theodore.net/projects/AvianVisitors/"
+          target="_blank"
+          rel="noreferrer"
+          className="text-ink underline underline-offset-4 hover:text-accent"
+        >
+          teddy
+        </a>
+      </p>
     </footer>
   );
 }
