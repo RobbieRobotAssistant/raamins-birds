@@ -42,6 +42,13 @@ body {
   border-color: theme("colors.line");
 }
 
+/* The collage hover card is desktop/mouse only — never on touch devices. */
+@media (hover: none) {
+  .hover-card-slot {
+    display: none;
+  }
+}
+
 .serif {
   font-family: var(--font-serif);
 }

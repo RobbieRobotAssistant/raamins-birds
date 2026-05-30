@@ -44,6 +44,7 @@ function bucketCfg(b: Bucket): BucketCfg {
 type Placed = {
   sci: string;
   com: string;
+  count: number;
   src: string;
   x: number;
   y: number;
@@ -89,6 +90,7 @@ function packBirds(species: TopSpecies[], cfg: BucketCfg): PackResult {
   type Sized = {
     sci: string;
     com: string;
+    count: number;
     src: string;
     pxW: number;
     pxH: number;
@@ -122,7 +124,17 @@ function packBirds(species: TopSpecies[], cfg: BucketCfg): PackResult {
       }
     }
     if (cells.length) {
-      sized.push({ sci: s.sci_name, com: s.com_name, src, pxW, pxH, cells, cellW, cellH });
+      sized.push({
+        sci: s.sci_name,
+        com: s.com_name,
+        count: s.count,
+        src,
+        pxW,
+        pxH,
+        cells,
+        cellW,
+        cellH,
+      });
     }
   });
   if (sized.length === 0) return empty;
@@ -180,6 +192,7 @@ function packBirds(species: TopSpecies[], cfg: BucketCfg): PackResult {
     placed.push({
       sci: s.sci,
       com: s.com,
+      count: s.count,
       src: s.src,
       x: spot.c * CELL_PX,
       y: spot.r * CELL_PX,
@@ -203,6 +216,15 @@ function packBirds(species: TopSpecies[], cfg: BucketCfg): PackResult {
   return { placed: norm, width: maxX - minX, height: maxY - minY };
 }
 
+// Phrasing for the hover card's count line, per time window.
+const WINDOW_SUFFIX: Record<Window, string> = {
+  "1h": "in the last hour",
+  "12h": "in the last 12 hours",
+  "24h": "today",
+  "7d": "this week",
+  all: "all-time",
+};
+
 export default function CollageView({
   window: win,
   onSelect,
@@ -217,6 +239,13 @@ export default function CollageView({
   const containerRef = useRef<HTMLDivElement>(null);
   const [measuredW, setMeasuredW] = useState(0);
   const [viewportH, setViewportH] = useState(900);
+  // Desktop hover field-card state.
+  const [hovered, setHovered] = useState<{
+    com: string;
+    sci: string;
+    count: number;
+  } | null>(null);
+  const [hoverVisible, setHoverVisible] = useState(false);
 
   useEffect(() => {
     setViewportH(window.innerHeight);
@@ -256,49 +285,81 @@ export default function CollageView({
   }, [pack, measuredW, viewportH]);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative mx-auto w-full max-w-5xl overflow-hidden"
-      style={{ minHeight: 360 }}
-    >
-      {error ? (
-        <ErrorState message={error} />
-      ) : !topData ? (
-        <LoadingGrid />
-      ) : topData.length === 0 ? (
-        <EmptyState message="No detections in this window yet." />
-      ) : measuredW === 0 ? (
-        <LoadingGrid />
-      ) : pack && pack.placed.length === 0 ? (
-        <EmptyState message="No illustrations for this window's species yet." />
-      ) : layout && pack ? (
-        <div className="relative" style={{ height: layout.contentH }}>
-          {pack.placed.map((p) => (
-            <button
-              key={p.sci}
-              onClick={() => onSelect(p.sci)}
-              title={p.com}
-              className="absolute select-none transition-transform duration-200 hover:z-10 hover:scale-[1.04]"
-              style={{
-                left: layout.offsetX + p.x * layout.scale,
-                top: p.y * layout.scale,
-                width: p.w * layout.scale,
-                height: p.h * layout.scale,
-              }}
+    <>
+      <div
+        ref={containerRef}
+        className="relative mx-auto w-full max-w-5xl overflow-hidden"
+        style={{ minHeight: 360 }}
+      >
+        {error ? (
+          <ErrorState message={error} />
+        ) : !topData ? (
+          <LoadingGrid />
+        ) : topData.length === 0 ? (
+          <EmptyState message="No detections in this window yet." />
+        ) : measuredW === 0 ? (
+          <LoadingGrid />
+        ) : pack && pack.placed.length === 0 ? (
+          <EmptyState message="No illustrations for this window's species yet." />
+        ) : layout && pack ? (
+          <div className="relative" style={{ height: layout.contentH }}>
+            {pack.placed.map((p) => (
+              <button
+                key={p.sci}
+                onClick={() => onSelect(p.sci)}
+                onMouseEnter={() => {
+                  setHovered({ com: p.com, sci: p.sci, count: p.count });
+                  setHoverVisible(true);
+                }}
+                onMouseLeave={() => setHoverVisible(false)}
+                title={p.com}
+                className="absolute select-none transition-transform duration-200 hover:z-10 hover:scale-[1.04]"
+                style={{
+                  left: layout.offsetX + p.x * layout.scale,
+                  top: p.y * layout.scale,
+                  width: p.w * layout.scale,
+                  height: p.h * layout.scale,
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={p.src}
+                  alt={p.com}
+                  draggable={false}
+                  className="h-full w-full object-contain"
+                />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <LoadingGrid />
+        )}
+      </div>
+
+      {/* Desktop-only hover field-card, centered just below the collage.
+          Hidden on touch via the .hover-card-slot media guard in globals.css. */}
+      {bucket === "d" && (
+        <div className="hover-card-slot mx-auto mt-4 flex min-h-[88px] w-full max-w-5xl justify-center px-5 sm:px-8">
+          {hovered && (
+            <div
+              className={`pointer-events-none select-none rounded-lg border hairline bg-paper px-5 py-3 text-center shadow-[0_2px_16px_rgba(20,18,15,0.08)] transition-opacity duration-200 ease-out ${
+                hoverVisible ? "opacity-100" : "opacity-0"
+              }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={p.src}
-                alt={p.com}
-                draggable={false}
-                className="h-full w-full object-contain"
-              />
-            </button>
-          ))}
+              <div className="serif text-lg leading-tight text-ink">
+                {hovered.com}
+              </div>
+              <div className="font-mono text-[0.8rem] italic text-muted">
+                ({hovered.sci})
+              </div>
+              <div className="mt-1.5 text-sm text-ink/90">
+                seen <span className="font-semibold">{hovered.count}</span>{" "}
+                {hovered.count === 1 ? "time" : "times"} {WINDOW_SUFFIX[win]}
+              </div>
+            </div>
+          )}
         </div>
-      ) : (
-        <LoadingGrid />
       )}
-    </div>
+    </>
   );
 }
