@@ -22,7 +22,10 @@ export default function StatsView({
   window: Window;
   onSelect: (sci: string) => void;
 }) {
-  const top = useFetch<TopSpecies[]>(`/api/stats/top-species?window=${window}`);
+  // All species heard in the window, rank-ordered by count (not just top 10).
+  const top = useFetch<TopSpecies[]>(
+    `/api/stats/top-species?window=${window}&limit=100`
+  );
   const first = useFetch<FirstDetection[]>(`/api/stats/first-detections`);
   const period = useFetch<PeriodBucket[]>(
     `/api/stats/by-period?window=${window}`
