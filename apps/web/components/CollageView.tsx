@@ -36,7 +36,7 @@ interface BucketCfg {
 }
 
 function bucketCfg(b: Bucket): BucketCfg {
-  if (b === "m") return { refW: 390, refH: 620, ex: 1.0, ey: 1.5 }; // tall ellipse
+  if (b === "m") return { refW: 390, refH: 560, ex: 1.0, ey: 1.4 }; // tall ellipse
   if (b === "t") return { refW: 760, refH: 720, ex: 1.35, ey: 1.0 };
   return { refW: 1024, refH: 620, ex: 2.1, ey: 1.0 }; // wide ellipse
 }
@@ -242,7 +242,9 @@ export default function CollageView({
   const layout = useMemo(() => {
     if (!pack || pack.placed.length === 0) return null;
     const avail = Math.min(measuredW, 1024);
-    const maxH = viewportH * 0.9;
+    // Leave room for the sticky header bar so the whole cluster is visible
+    // below it (not scrolled under it). ~130px covers the pinned bar + margin.
+    const maxH = Math.max(320, viewportH - 130);
     // Fill the available width; back off only if that would exceed the height
     // budget. Capped at 1.4x so birds don't balloon when few species are shown.
     const scale = Math.min((avail * 0.99) / pack.width, maxH / pack.height, 1.4);

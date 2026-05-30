@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useFetch } from "@/lib/useFetch";
 import type { EnrichmentMap, Window } from "@/lib/types";
@@ -15,20 +15,10 @@ export default function BirdApp({ location }: { location: string }) {
   const [view, setView] = useState<View>("collage");
   const [window, setWindow] = useState<Window>("24h");
   const [selectedSci, setSelectedSci] = useState<string | null>(null);
-  const [scrolled, setScrolled] = useState(false);
 
   // Fetched once; held by the Next data cache upstream. Empty map = fallbacks.
   const { data: enrichment } = useFetch<EnrichmentMap>("/api/enrichment");
   const enr = enrichment ?? {};
-
-  useEffect(() => {
-    // Condense the header once scrolled. `window` here is the time-window
-    // state, so use globalThis for the browser globals.
-    const onScroll = () => setScrolled(globalThis.scrollY > 48);
-    onScroll();
-    globalThis.addEventListener("scroll", onScroll, { passive: true });
-    return () => globalThis.removeEventListener("scroll", onScroll);
-  }, []);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -38,7 +28,6 @@ export default function BirdApp({ location }: { location: string }) {
         setView={setView}
         window={window}
         setWindow={setWindow}
-        scrolled={scrolled}
       />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 pb-16 pt-8 sm:px-8">
