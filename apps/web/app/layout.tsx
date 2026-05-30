@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
-import { Newsreader } from "next/font/google";
+import { Newsreader, IBM_Plex_Mono } from "next/font/google";
 
 import "./globals.css";
 
 const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-newsreader" });
+// IBM Plex Mono — the site's monospace for labels/chrome (nav, selectors,
+// timestamps, scientific names). Italics loaded for the scientific names.
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  style: ["normal", "italic"],
+  variable: "--font-plex-mono",
+});
 
 export const metadata: Metadata = {
   title: "Raamin's Birds",
@@ -17,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={newsreader.variable}>
+    <html lang="en" className={`${newsreader.variable} ${plexMono.variable}`}>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );

@@ -4,7 +4,10 @@
 
 :root {
   color-scheme: light;
+  /* Two families: Newsreader (serif) for all prose/names, IBM Plex Mono for
+     labels/chrome. */
   --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, Menlo, monospace;
 }
 
 html {
@@ -20,7 +23,7 @@ body {
 }
 
 body {
-  font-family: theme("fontFamily.sans");
+  font-family: var(--font-serif);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -31,7 +34,7 @@ body {
 
 /* Field-notes label: small, spaced, uppercase, monospace. */
 .label {
-  font-family: theme("fontFamily.mono");
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -56,7 +59,7 @@ body {
 /* Lowercase chrome label used in the header (distinct from .label which is
    uppercased and used for in-content metadata like timestamps). */
 .chrome {
-  font-family: theme("fontFamily.mono");
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   letter-spacing: 0.1em;
   text-transform: lowercase;
