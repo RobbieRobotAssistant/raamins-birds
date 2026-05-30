@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { Newsreader } from "next/font/google";
 
 import "./globals.css";
 
-const siteName = process.env.NEXT_PUBLIC_SITE_NAME || "Garden Birds";
+const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-newsreader" });
 
 export const metadata: Metadata = {
-  title: `${siteName} — bird detections`,
+  title: "Raamin's Birds",
   description:
     "A public log of birds detected in the garden, by an autonomous BirdNET-Pi listening station.",
 };
@@ -16,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={newsreader.variable}>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );

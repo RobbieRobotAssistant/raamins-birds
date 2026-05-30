@@ -1,42 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useFetch } from "@/lib/useFetch";
 import type { EnrichmentMap, Window } from "@/lib/types";
 import Header, { type View } from "./Header";
+import Footer from "./Footer";
 import CollageView from "./CollageView";
 import StatsView from "./StatsView";
 import AtlasView from "./AtlasView";
 import SpeciesModal from "./SpeciesModal";
 
-export default function BirdApp({
-  siteName,
-  location,
-}: {
-  siteName: string;
-  location: string;
-}) {
+export default function BirdApp({ location }: { location: string }) {
   const [view, setView] = useState<View>("collage");
   const [window, setWindow] = useState<Window>("24h");
   const [selectedSci, setSelectedSci] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   // Fetched once; held by the Next data cache upstream. Empty map = fallbacks.
   const { data: enrichment } = useFetch<EnrichmentMap>("/api/enrichment");
   const enr = enrichment ?? {};
 
+  useEffect(() => {
+    // Condense the header once scrolled. `window` here is the time-window
+    // state, so use globalThis for the browser globals.
+    const onScroll = () => setScrolled(globalThis.scrollY > 48);
+    onScroll();
+    globalThis.addEventListener("scroll", onScroll, { passive: true });
+    return () => globalThis.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <div className="mx-auto max-w-5xl px-5 pb-24 sm:px-8">
+    <div className="flex min-h-screen flex-col">
       <Header
-        siteName={siteName}
         location={location}
         view={view}
         setView={setView}
         window={window}
         setWindow={setWindow}
+        scrolled={scrolled}
       />
 
-      <main className="mt-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-5 pb-16 pt-8 sm:px-8">
         {view === "collage" && (
           <CollageView window={window} onSelect={setSelectedSci} />
         )}
@@ -47,6 +52,8 @@ export default function BirdApp({
           <AtlasView enrichment={enr} onSelect={setSelectedSci} />
         )}
       </main>
+
+      <Footer />
 
       {selectedSci && (
         <SpeciesModal

@@ -16,7 +16,7 @@ const config: Config = {
         accent: "#7a6a52",
       },
       fontFamily: {
-        serif: ["Georgia", "'Times New Roman'", "serif"],
+        serif: ["var(--font-serif)", "Georgia", "'Times New Roman'", "serif"],
         sans: [
           "ui-sans-serif",
           "system-ui",

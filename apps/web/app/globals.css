@@ -4,6 +4,7 @@
 
 :root {
   color-scheme: light;
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
 }
 
 html,
@@ -36,5 +37,15 @@ body {
 }
 
 .serif {
-  font-family: theme("fontFamily.serif");
+  font-family: var(--font-serif);
+}
+
+/* Lowercase chrome label used in the header (distinct from .label which is
+   uppercased and used for in-content metadata like timestamps). */
+.chrome {
+  font-family: theme("fontFamily.mono");
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: theme("colors.muted");
 }
