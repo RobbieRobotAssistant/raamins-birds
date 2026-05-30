@@ -7,6 +7,12 @@
   --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
 }
 
+html {
+  /* Reserve the scrollbar gutter so centered content doesn't shift/resize
+     between views that scroll (atlas/collage) and ones that don't. */
+  scrollbar-gutter: stable;
+}
+
 html,
 body {
   background-color: theme("colors.paper");

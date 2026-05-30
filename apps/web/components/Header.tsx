@@ -48,8 +48,10 @@ export default function Header({
 
   return (
     <>
-      {/* Masthead — in normal flow, scrolls away */}
-      <div className="mx-auto max-w-5xl px-5 sm:px-8">
+      {/* Masthead — in normal flow, scrolls away. w-full so it fills the same
+          column as the nav bar (auto margins on a flex-column child otherwise
+          shrink it to content width). */}
+      <div className="mx-auto w-full max-w-5xl px-5 sm:px-8">
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 pt-9">
           <h1 className="serif text-4xl font-normal tracking-tight">{TITLE}</h1>
           {location && <span className="chrome">{location}</span>}
