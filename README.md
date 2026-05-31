@@ -4,7 +4,7 @@ A Next.js web application for tracking bird species detected by a BirdNET-Pi lis
 
 ## Live Site
 
-**URL:** https://raamins-birds.vercel.app
+**URL:** https://birds.raaminmostaghimi.com/
 
 ## Current Architecture
 
