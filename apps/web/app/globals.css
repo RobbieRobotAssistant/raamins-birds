@@ -45,8 +45,10 @@ body {
   border-color: theme("colors.line");
 }
 
-/* The collage hover card is desktop/mouse only — never on touch devices. */
-@media (hover: none) {
+/* Hide the collage hover card only when NO pointer can hover (e.g. a phone).
+   Uses any-hover (not hover) so it still shows on Windows touch-hybrids that
+   also have a mouse — those report (hover: none) but (any-hover: hover). */
+@media (any-hover: none) {
   .hover-card-slot {
     display: none;
   }
