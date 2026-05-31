@@ -57,8 +57,8 @@ export default function Header({
           {location && <span className="chrome">{location}</span>}
         </div>
         <p className="mt-2 max-w-prose pb-3 text-sm leading-relaxed text-muted">
-          an autonomous listening station identifying birds by sound, around the
-          clock. every entry below is a real detection.
+          an autonomous listening station in my backyard identifying birds by
+          sound, around the clock. every entry below is a real detection.
         </p>
       </div>
 
