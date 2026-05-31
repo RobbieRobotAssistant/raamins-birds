@@ -246,6 +246,10 @@ export default function CollageView({
     count: number;
   } | null>(null);
   const [hoverVisible, setHoverVisible] = useState(false);
+  // True once a real mouse/pen pointer has hovered a bird. Gates the card so it
+  // never appears on touch — without relying on (any-)hover media queries,
+  // which misreport "no hover" on many Windows mouse desktops.
+  const [pointerFine, setPointerFine] = useState(false);
 
   useEffect(() => {
     setViewportH(window.innerHeight);
@@ -307,11 +311,16 @@ export default function CollageView({
               <button
                 key={p.sci}
                 onClick={() => onSelect(p.sci)}
-                onMouseEnter={() => {
+                onPointerEnter={(e) => {
+                  if (e.pointerType === "touch") return;
+                  setPointerFine(true);
                   setHovered({ com: p.com, sci: p.sci, count: p.count });
                   setHoverVisible(true);
                 }}
-                onMouseLeave={() => setHoverVisible(false)}
+                onPointerLeave={(e) => {
+                  if (e.pointerType === "touch") return;
+                  setHoverVisible(false);
+                }}
                 title={p.com}
                 className="absolute select-none transition-transform duration-200 hover:z-10 hover:scale-[1.04]"
                 style={{
@@ -336,10 +345,10 @@ export default function CollageView({
         )}
       </div>
 
-      {/* Hover field-card, centered just below the collage. Shown on any
-          hover-capable (mouse) device at any width; hidden on touch via the
-          .hover-card-slot media guard in globals.css. */}
-      {layout && pack && (
+      {/* Hover field-card, centered just below the collage. Only rendered once
+          a real mouse/pen pointer has hovered a bird, so it never shows on
+          touch devices (no flaky hover media queries involved). */}
+      {pointerFine && (
         <div className="hover-card-slot mx-auto mt-4 flex min-h-[88px] w-full max-w-5xl justify-center px-5 sm:px-8">
           {hovered && (
             <div

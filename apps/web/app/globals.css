@@ -45,15 +45,6 @@ body {
   border-color: theme("colors.line");
 }
 
-/* Hide the collage hover card only when NO pointer can hover (e.g. a phone).
-   Uses any-hover (not hover) so it still shows on Windows touch-hybrids that
-   also have a mouse — those report (hover: none) but (any-hover: hover). */
-@media (any-hover: none) {
-  .hover-card-slot {
-    display: none;
-  }
-}
-
 .serif {
   font-family: var(--font-serif);
 }
