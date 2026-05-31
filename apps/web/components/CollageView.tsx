@@ -336,9 +336,10 @@ export default function CollageView({
         )}
       </div>
 
-      {/* Desktop-only hover field-card, centered just below the collage.
-          Hidden on touch via the .hover-card-slot media guard in globals.css. */}
-      {bucket === "d" && (
+      {/* Hover field-card, centered just below the collage. Shown on any
+          hover-capable (mouse) device at any width; hidden on touch via the
+          .hover-card-slot media guard in globals.css. */}
+      {layout && pack && (
         <div className="hover-card-slot mx-auto mt-4 flex min-h-[88px] w-full max-w-5xl justify-center px-5 sm:px-8">
           {hovered && (
             <div
