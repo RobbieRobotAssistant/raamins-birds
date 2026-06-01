@@ -43,8 +43,24 @@ $REPO            = (Get-Location).Path
 $SITE_NAME     = "Garden Birds"
 $SITE_LOCATION = "Utrecht, NL"
 
+# --- Moderation / admin (the "report a misidentification" feature) ---
+# ADMIN_PASSWORD   : password for the gear-icon admin login on the site.
+# MODERATION_TOKEN : shared secret. MUST be IDENTICAL on the Pi and on Vercel —
+#                    it gates the Pi's delete endpoint that the site calls.
+# Generate a strong random token once and reuse the same string in both places.
+$ADMIN_PASSWORD   = "change-me"   # pick a real password before deploying
+$MODERATION_TOKEN = (-join ((48..57) + (65..90) + (97..122) | Get-Random -Count 40 | % {[char]$_}))
+Write-Host "MODERATION_TOKEN = $MODERATION_TOKEN"   # note this; used on Pi AND Vercel
+
+# --- BirdNET-Pi credentials (the API routes deletes through BirdNET-Pi itself) ---
+# Defaults match a stock Nachtzuster BirdNET-Pi reached on localhost.
+$BIRDNETPI_URL      = "http://localhost"
+$BIRDNETPI_USER     = "birdnet"
+$BIRDNETPI_PASSWORD = ""           # the Caddy/basic-auth password; empty if none
+
 # --- Filled in during the steps below (set when instructed) ---
 $SPECIES_DATA_URL = ""   # set after the first image-gen run (STEP 5); empty is fine at first
+$BLOB_TOKEN       = ""   # the Vercel Blob store's BLOB_READ_WRITE_TOKEN (STEP 1.4 / STEP 5)
 ```
 
 Sanity check the tools:
@@ -95,6 +111,10 @@ BIRDSONGS_DIR=$PI_HOME/BirdNET-Pi/BirdSongs/Extracted/By_Date
 ALLOWED_ORIGINS=$ALLOWED_ORIGINS
 API_HOST=127.0.0.1
 API_PORT=8000
+MODERATION_TOKEN=$MODERATION_TOKEN
+BIRDNETPI_URL=$BIRDNETPI_URL
+BIRDNETPI_USER=$BIRDNETPI_USER
+BIRDNETPI_PASSWORD=$BIRDNETPI_PASSWORD
 "@
 $envFile | ssh $PI "cat > ~/birdnet-public/apps/pi-api/.env"
 ```
@@ -118,10 +138,17 @@ set -e
 sudo cp ~/birdnet-public/apps/pi-api/deploy/birdnet-api.service /etc/systemd/system/birdnet-api.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now birdnet-api
+sudo systemctl restart birdnet-api   # picks up new code + .env on a redeploy
 sleep 2
 systemctl --no-pager --full status birdnet-api | head -n 12
 '@
 ```
+
+> **Redeploying for moderation only?** If the Pi API is already installed and you
+> are just adding the moderation feature, re-running STEP 2a, 2b, 2c, 2d in order
+> is enough — the `systemctl restart` above reloads the new code and the new
+> `.env` (with `MODERATION_TOKEN` and `BIRDNETPI_*`). No reboot or rebuild of
+> BirdNET-Pi itself is involved.
 
 ```powershell
 # 2e. Verify the API is up locally on the Pi
@@ -200,9 +227,21 @@ vercel link --yes
 "$API_BASE_URL"     | vercel env add BIRD_API_URL production
 "$SITE_NAME"        | vercel env add NEXT_PUBLIC_SITE_NAME production
 "$SITE_LOCATION"    | vercel env add NEXT_PUBLIC_SITE_LOCATION production
+
+# Moderation / admin (the "report a misidentification" feature):
+"$ADMIN_PASSWORD"   | vercel env add ADMIN_PASSWORD production       # admin login password
+"$MODERATION_TOKEN" | vercel env add MODERATION_TOKEN production     # MUST match the Pi's value
+"$BLOB_TOKEN"       | vercel env add BLOB_READ_WRITE_TOKEN production # Vercel Blob store token (STEP 1.4)
+
 # Leave SPECIES_DATA_URL unset for now (the site uses fallbacks). You'll add it
 # in STEP 5 if/when you publish species images.
 ```
+
+> **Reports are stored in Vercel Blob.** `BLOB_READ_WRITE_TOKEN` is the same
+> token from the Blob store in STEP 1.4 / STEP 5. If you skipped the Blob store,
+> create it first (Vercel → Storage → Blob) and set `$BLOB_TOKEN` in STEP 0. With
+> no `BLOB_READ_WRITE_TOKEN`, the report form and admin page return 503 (disabled)
+> rather than erroring. With no `ADMIN_PASSWORD`, admin login is disabled.
 
 ```powershell
 # 4d. Deploy to production and capture the deployment URL

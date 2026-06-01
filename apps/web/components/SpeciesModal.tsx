@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { useFetch } from "@/lib/useFetch";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/lib/format";
 import type { EnrichmentMap, SpeciesDetail, Window } from "@/lib/types";
 import SpeciesImage from "./SpeciesImage";
+import ReportModal from "./ReportModal";
 
 const WINDOW_LABEL: Record<Window, string> = {
   "1h": "last hour",
@@ -44,6 +45,7 @@ export default function SpeciesModal({
     `/api/species/detail?sci=${encodeURIComponent(sci)}&window=${window}`
   );
   const r = resolveSpecies(enrichment, sci);
+  const [reporting, setReporting] = useState<number | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -56,6 +58,7 @@ export default function SpeciesModal({
   }, [onClose]);
 
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/30 p-4 sm:p-8"
       onClick={onClose}
@@ -116,7 +119,7 @@ export default function SpeciesModal({
                   ) : (
                     <ul className="space-y-2">
                       {data.recent.slice(0, 5).map((rec) => (
-                        <li key={rec.rowid} className="flex items-center gap-3">
+                        <li key={rec.rowid} className="flex items-center gap-2">
                           <span className="label w-24 shrink-0">
                             {clockTime(rec.timestamp)} ·{" "}
                             {confidencePct(rec.confidence)}
@@ -127,6 +130,25 @@ export default function SpeciesModal({
                             src={`/api/audio/${rec.rowid}`}
                             className="h-8 w-full"
                           />
+                          <button
+                            onClick={() => setReporting(rec.rowid)}
+                            title="report this recording"
+                            aria-label="report this recording"
+                            className="shrink-0 text-muted transition-colors hover:text-accent"
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              className="h-4 w-4"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                            >
+                              <circle cx="12" cy="12" r="9" />
+                              <line x1="12" y1="7.5" x2="12" y2="13" />
+                              <line x1="12" y1="16.5" x2="12" y2="16.5" />
+                            </svg>
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -161,5 +183,15 @@ export default function SpeciesModal({
         </div>
       </div>
     </div>
+
+    {reporting !== null && data && (
+      <ReportModal
+        rowid={reporting}
+        comName={data.com_name}
+        sciName={data.sci_name}
+        onClose={() => setReporting(null)}
+      />
+    )}
+    </>
   );
 }

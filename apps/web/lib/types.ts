@@ -72,3 +72,14 @@ export interface SpeciesEnrichment {
 }
 
 export type EnrichmentMap = Record<string, SpeciesEnrichment>;
+
+// A viewer-submitted misidentification report.
+export interface BirdReport {
+  id: string;
+  rowid: number;
+  sci_name: string;
+  com_name: string;
+  incorrect: boolean; // answer to "is this incorrectly identified?"
+  actual: string; // free text: "what is it really?"
+  created: string; // ISO 8601
+}

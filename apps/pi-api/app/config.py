@@ -23,6 +23,17 @@ class Settings:
         self.api_host: str = os.environ.get("API_HOST", "127.0.0.1")
         self.api_port: int = int(os.environ.get("API_PORT", "8000"))
 
+        # Moderation: shared secret required to call the delete endpoint. Empty
+        # disables moderation entirely (endpoint returns 503).
+        self.moderation_token: str = os.environ.get("MODERATION_TOKEN", "")
+        # BirdNET-Pi's own web UI (reachable on the Pi over localhost). Its
+        # play.php performs the actual deletion of a detection + audio file.
+        self.birdnetpi_url: str = os.environ.get(
+            "BIRDNETPI_URL", "http://localhost"
+        ).rstrip("/")
+        self.birdnetpi_user: str = os.environ.get("BIRDNETPI_USER", "birdnet")
+        self.birdnetpi_password: str = os.environ.get("BIRDNETPI_PASSWORD", "")
+
 
 @lru_cache
 def get_settings() -> Settings:

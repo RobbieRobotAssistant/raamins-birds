@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { Window } from "@/lib/types";
 import { WINDOWS } from "@/lib/params";
+import GearAdmin from "./GearAdmin";
 
 export type View = "collage" | "stats" | "atlas";
 
@@ -51,10 +52,11 @@ export default function Header({
       {/* Masthead — in normal flow, scrolls away. w-full so it fills the same
           column as the nav bar (auto margins on a flex-column child otherwise
           shrink it to content width). */}
-      <div className="mx-auto w-full max-w-5xl px-5 sm:px-8">
+      <div className="relative mx-auto w-full max-w-5xl px-5 sm:px-8">
+        <GearAdmin />
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 pt-9">
           <h1 className="serif text-4xl font-normal tracking-tight">{TITLE}</h1>
-          {location && <span className="chrome">{location}</span>}
+          {location && <span className="chrome pr-6">{location}</span>}
         </div>
         <p className="mt-2 max-w-prose pb-3 text-sm leading-relaxed text-muted">
           an autonomous listening station in my backyard identifying birds by

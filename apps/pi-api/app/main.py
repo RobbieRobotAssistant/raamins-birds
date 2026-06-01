@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
-from .routers import detections, recordings, species, stats
+from .routers import detections, moderate, recordings, species, stats
 
 app = FastAPI(
     title="BirdNET-Pi Public API",
@@ -43,6 +43,7 @@ app.include_router(detections.router)
 app.include_router(species.router)
 app.include_router(recordings.router)
 app.include_router(stats.router)
+app.include_router(moderate.router)
 
 
 @app.get("/health", tags=["meta"])
