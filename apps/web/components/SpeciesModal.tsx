@@ -65,7 +65,7 @@ export default function SpeciesModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl bg-paper shadow-xl"
+        className="relative w-full max-w-3xl bg-paper shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -121,13 +121,13 @@ export default function SpeciesModal({
                     <ul className="space-y-2">
                       {data.recent.slice(0, 5).map((rec) => (
                         <li key={rec.rowid} className="flex items-center gap-2">
-                          <div className="w-24 shrink-0 leading-tight">
-                            <div className="label">
+                          <div className="w-36 shrink-0 leading-tight">
+                            <div className="label whitespace-nowrap">
                               {dayMonth(rec.timestamp)} ·{" "}
                               {clockTime(rec.timestamp)}
                             </div>
-                            <div className="label !text-muted">
-                              {confidencePct(rec.confidence)}
+                            <div className="label">
+                              {confidencePct(rec.confidence)} conf
                             </div>
                           </div>
                           <audio
