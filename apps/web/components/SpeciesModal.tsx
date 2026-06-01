@@ -6,6 +6,7 @@ import { useFetch } from "@/lib/useFetch";
 import {
   clockTime,
   confidencePct,
+  dayMonth,
   resolveSpecies,
   shortDate,
 } from "@/lib/format";
@@ -120,10 +121,15 @@ export default function SpeciesModal({
                     <ul className="space-y-2">
                       {data.recent.slice(0, 5).map((rec) => (
                         <li key={rec.rowid} className="flex items-center gap-2">
-                          <span className="label w-24 shrink-0">
-                            {clockTime(rec.timestamp)} ·{" "}
-                            {confidencePct(rec.confidence)}
-                          </span>
+                          <div className="w-24 shrink-0 leading-tight">
+                            <div className="label">
+                              {dayMonth(rec.timestamp)} ·{" "}
+                              {clockTime(rec.timestamp)}
+                            </div>
+                            <div className="label !text-muted">
+                              {confidencePct(rec.confidence)}
+                            </div>
+                          </div>
                           <audio
                             controls
                             preload="none"

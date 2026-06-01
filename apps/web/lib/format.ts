@@ -40,6 +40,12 @@ export function clockTime(iso: string): string {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+// Compact MM/DD for dense lists (e.g. "05/30"). Pairs with clockTime.
+export function dayMonth(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString([], { month: "2-digit", day: "2-digit" });
+}
+
 export function shortDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString([], {

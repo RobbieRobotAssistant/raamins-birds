@@ -40,8 +40,14 @@ export async function POST(req: NextRequest) {
       cache: "no-store",
     }
   );
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
+
+  // The Pi returns 404 "no detection {rowid}" when the detection is already
+  // gone — e.g. two people reported the same recording and the first delete
+  // already removed it. That's the desired end state, not a failure, so we
+  // treat it as success and just clear this leftover report.
+  const detail = !res.ok ? await res.text().catch(() => "") : "";
+  const alreadyGone = res.status === 404 && /no detection/i.test(detail);
+  if (!res.ok && !alreadyGone) {
     return NextResponse.json(
       { error: `source delete failed (${res.status})`, detail: detail.slice(0, 300) },
       { status: 502 }
@@ -55,5 +61,9 @@ export async function POST(req: NextRequest) {
       /* detection is gone; a leftover report blob is harmless */
     }
   }
-  return NextResponse.json({ ok: true });
+
+  const note = alreadyGone
+    ? "this detection was already deleted. it'll drop off the public site within a couple of minutes as the cache refreshes."
+    : "detection deleted. it'll disappear from the public site within a couple of minutes as the cache refreshes.";
+  return NextResponse.json({ ok: true, note });
 }

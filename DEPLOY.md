@@ -110,7 +110,9 @@ BIRDS_DB_PATH=$PI_HOME/BirdNET-Pi/scripts/birds.db
 BIRDSONGS_DIR=$PI_HOME/BirdNET-Pi/BirdSongs/Extracted/By_Date
 ALLOWED_ORIGINS=$ALLOWED_ORIGINS
 API_HOST=127.0.0.1
-API_PORT=8000
+# NOTE: port 8000 is taken by BirdNET-Pi's Icecast audio stream — do not use it.
+# We run the API on 8585; the cloudflared config below points at the same port.
+API_PORT=8585
 MODERATION_TOKEN=$MODERATION_TOKEN
 BIRDNETPI_URL=$BIRDNETPI_URL
 BIRDNETPI_USER=$BIRDNETPI_USER
@@ -152,7 +154,7 @@ systemctl --no-pager --full status birdnet-api | head -n 12
 
 ```powershell
 # 2e. Verify the API is up locally on the Pi
-ssh $PI "curl -s http://127.0.0.1:8000/health && echo"
+ssh $PI "curl -s http://127.0.0.1:8585/health && echo"
 ```
 
 Expected: `{"status":"ok"}`. If the `detections` table is still empty, data

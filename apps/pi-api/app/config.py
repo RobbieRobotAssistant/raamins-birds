@@ -21,7 +21,8 @@ class Settings:
             o.strip() for o in raw_origins.split(",") if o.strip()
         ]
         self.api_host: str = os.environ.get("API_HOST", "127.0.0.1")
-        self.api_port: int = int(os.environ.get("API_PORT", "8000"))
+        # Default off 8000 — that port is BirdNET-Pi's Icecast audio stream.
+        self.api_port: int = int(os.environ.get("API_PORT", "8585"))
 
         # Moderation: shared secret required to call the delete endpoint. Empty
         # disables moderation entirely (endpoint returns 503).

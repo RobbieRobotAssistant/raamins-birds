@@ -12,6 +12,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [msgErr, setMsgErr] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/reports", { cache: "no-store" });
@@ -37,13 +38,17 @@ export default function AdminPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
+      const d = await res.json().catch(() => ({}));
       if (res.ok) {
         setItems((cur) => (cur ?? []).filter((i) => i.key !== key));
+        setMsgErr(false);
+        setMsg(typeof d.note === "string" ? d.note : "");
       } else {
-        const d = await res.json().catch(() => ({}));
+        setMsgErr(true);
         setMsg(d.error ? `${d.error}${d.detail ? " — " + d.detail : ""}` : "action failed");
       }
     } catch {
+      setMsgErr(true);
       setMsg("action failed");
     } finally {
       setBusy(null);
@@ -141,7 +146,11 @@ export default function AdminPage() {
         </ul>
       )}
 
-      {msg && <p className="label mt-6 !text-accent">{msg}</p>}
+      {msg && (
+        <p className={`label mt-6 ${msgErr ? "!text-accent" : "!text-muted"}`}>
+          {msg}
+        </p>
+      )}
     </div>
   );
 }
