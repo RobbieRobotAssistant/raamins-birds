@@ -20016,6 +20016,7 @@ export const CUTOUTS: CutoutManifest = {
   "pheucticus-ludovicianus": {
     "comName": "Rose-breasted Grosbeak",
     "h": 600,
+    "w": 539,
     "mask": [
       [
         1,
@@ -344617,8 +344618,7 @@ export const CUTOUTS: CutoutManifest = {
         1,
         1
       ]
-    ],
-    "w": 539
+    ]
   },
   "piranga-rubra": {
     "comName": "Summer Tanager",
@@ -354907,6 +354907,7 @@ export const CUTOUTS: CutoutManifest = {
   "tyrannus-tyrannus": {
     "comName": "Eastern Kingbird",
     "h": 500,
+    "w": 450,
     "mask": [
       [
         1,
@@ -580908,8 +580909,7 @@ export const CUTOUTS: CutoutManifest = {
         1,
         1
       ]
-    ],
-    "w": 450
+    ]
   },
   "vireo-flavifrons": {
     "comName": "Yellow-throated Vireo",
