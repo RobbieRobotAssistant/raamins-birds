@@ -355948,7 +355948,9 @@ export const CUTOUTS: CutoutManifest = {
   },
   "sitta-canadensis": {
     "comName": "Red-breasted Nuthatch",
-    "sciName": "Sitta canadensis"
+    "h": 600,
+    "mask": [],
+    "w": 800
   },
   "sitta-carolinensis": {
     "comName": "White-breasted Nuthatch",
