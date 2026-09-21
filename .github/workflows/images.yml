@@ -45,12 +45,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      # The u2net background-removal model is ~176MB; cache it between runs.
-      - name: Cache u2net model
+      # rembg downloads its segmentation model on first use. The current
+      # default is BRIA RMBG 2.0 — ~1GB, landing in ~/.rembg, NOT the ~/.u2net
+      # path older docs mention. Caching the wrong path silently no-ops:
+      # actions/cache warns "Path(s) ... do(es) not exist, hence no cache is
+      # being saved" in post-job and every run re-downloads the full gigabyte.
+      # If rembg changes its default model again, check this path.
+      - name: Cache rembg model
         uses: actions/cache@v4
         with:
-          path: ~/.u2net
-          key: u2net-model-v1
+          path: ~/.rembg
+          key: rembg-bria-rmbg-2.0-v1
 
       - name: Install Node dependencies
         working-directory: scripts/image-gen
