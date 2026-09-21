@@ -1,0 +1,142 @@
+name: Generate bird cutouts
+
+# Replaces the external polling bot. Finds species BirdNET has detected that
+# have no collage cutout yet, generates an illustration with Gemini, runs the
+# existing cutout pipeline (rembg + mask + manifest), and commits the result.
+# Vercel auto-deploys on push to main, so new birds appear in the collage.
+#
+# Idempotent: species that already have a cutout are skipped, so a scheduled
+# run with nothing new does no work and makes no commit.
+
+on:
+  schedule:
+    - cron: "41 */6 * * *" # every 6h — new species are rare
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Generate images but do not commit (uploads an artifact instead)"
+        type: boolean
+        default: false
+      max_per_run:
+        description: "Max images to generate in this run"
+        type: string
+        default: "4"
+
+# Never let two runs race on the manifest / a push.
+concurrency:
+  group: images
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The u2net background-removal model is ~176MB; cache it between runs.
+      - name: Cache u2net model
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: u2net-model-v1
+
+      - name: Install Node dependencies
+        working-directory: scripts/image-gen
+        run: npm ci
+
+      - name: Install cutout dependencies
+        run: pip install --quiet rembg onnxruntime pillow
+
+      - name: Generate missing illustrations
+        working-directory: scripts/image-gen
+        env:
+          BIRD_API_URL: ${{ secrets.BIRD_API_URL }}
+          SPECIES_DATA_URL: ${{ secrets.SPECIES_DATA_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Optional: pin a model if auto-discovery picks a bad one.
+          GEMINI_IMAGE_MODEL: ${{ vars.GEMINI_IMAGE_MODEL }}
+          MAX_PER_RUN: ${{ inputs.max_per_run || '4' }}
+        run: npm run images
+
+      - name: Run cutout pipeline
+        id: cutouts
+        run: |
+          set -euo pipefail
+          PENDING=scripts/image-gen/out/pending.json
+          if [ ! -s "$PENDING" ] || [ "$(jq 'length' "$PENDING")" -eq 0 ]; then
+            echo "nothing to process"
+            echo "processed=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mapfile -t items < <(jq -c '.[]' "$PENDING")
+          for item in "${items[@]}"; do
+            slug=$(jq -r '.slug'    <<<"$item")
+            com=$( jq -r '.comName' <<<"$item")
+            raw="scripts/image-gen/$(jq -r '.raw' <<<"$item")"
+            echo "::group::$slug ($com)"
+            python scripts/cutout-pipeline/process_cutout.py \
+              --raw "$raw" --slug "$slug" --com-name "$com" --web-dir apps/web
+            echo "::endgroup::"
+          done
+          echo "processed=${#items[@]}" >> "$GITHUB_OUTPUT"
+
+      # The collage drops any species missing EITHER the PNG or the manifest
+      # entry, and past runs of the old bot committed half-finished artifacts.
+      # Verify both exist before we commit anything.
+      - name: Validate generated cutouts
+        if: steps.cutouts.outputs.processed != '0'
+        run: |
+          set -euo pipefail
+          PENDING=scripts/image-gen/out/pending.json
+          fail=0
+          for slug in $(jq -r '.[].slug' "$PENDING"); do
+            if [ ! -f "apps/web/public/birds/$slug.png" ]; then
+              echo "::error::missing PNG for $slug"; fail=1
+            fi
+            if ! jq -e --arg s "$slug" 'has($s)' \
+                 apps/web/lib/cutouts.manifest.json >/dev/null; then
+              echo "::error::missing manifest entry for $slug"; fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Commit and push
+        if: steps.cutouts.outputs.processed != '0' && inputs.dry_run != true
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/public/birds \
+                  apps/web/lib/cutouts.manifest.json \
+                  apps/web/lib/cutouts.generated.ts
+          if git diff --cached --quiet; then
+            echo "no changes to commit"
+            exit 0
+          fi
+          names=$(jq -r '[.[].comName] | join(", ")' scripts/image-gen/out/pending.json)
+          git commit -m "Add cutouts: ${names}"
+          git push
+
+      - name: Upload generated images (dry run)
+        if: inputs.dry_run == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-cutouts
+          path: |
+            scripts/image-gen/out/
+            apps/web/public/birds/
+          retention-days: 7
+          if-no-files-found: ignore
