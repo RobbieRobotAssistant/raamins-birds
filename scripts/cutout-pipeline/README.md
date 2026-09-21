@@ -46,7 +46,19 @@ A single <Common Name> (<key identifying features>), side profile, illustrated
 in a loose hand-drawn ink-and-watercolor field guide style — soft pencil
 contours, gentle watercolor washes, slightly imperfect lines, naturalistic but
 stylized. Full body, facing right. Subject only — solid white background, no
-shadow, no ground, no perch.
+shadow, no ground, no perch. No text, no caption, no species label, no
+lettering, no watermark, no border or frame anywhere in the image.
 ```
 
 rembg keys out the white background reliably.
+
+Both negative clauses are load-bearing:
+
+- **Solid white background** is what rembg keys against.
+- **No text** — "field guide style" pulls the model toward plate captions. Left
+  unsaid, it drew a "Forster's Tern / Sterna forsteri" label beneath the bird.
+  Lettering is opaque, so rembg preserves it, it falls inside the alpha bbox,
+  and the collage then sizes and packs the bird by a box that is largely text.
+
+This prompt is duplicated in `scripts/image-gen/src/images.ts` (`buildPrompt`),
+which is what the `Generate bird cutouts` workflow actually calls. Change both.

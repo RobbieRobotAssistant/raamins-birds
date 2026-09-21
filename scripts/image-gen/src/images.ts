@@ -70,6 +70,12 @@ async function loadFeatures(url: string): Promise<EnrichmentMap> {
  * The locked field-guide style prompt from scripts/cutout-pipeline/README.md.
  * The solid white background is what lets rembg key the subject out cleanly,
  * so do not loosen that clause.
+ *
+ * The no-text clause matters as much as the background one: field-guide style
+ * cues the model toward plate captions, and it rendered a "Forster's Tern /
+ * Sterna forsteri" label under the bird on the first real run. A caption is
+ * opaque, so rembg keeps it, it lands inside the alpha bbox, and the collage
+ * then packs and scales the bird by a box that is mostly lettering.
  */
 function buildPrompt(comName: string, features: string): string {
   return (
@@ -77,7 +83,8 @@ function buildPrompt(comName: string, features: string): string {
     `hand-drawn ink-and-watercolor field guide style — soft pencil contours, ` +
     `gentle watercolor washes, slightly imperfect lines, naturalistic but ` +
     `stylized. Full body, facing right. Subject only — solid white background, ` +
-    `no shadow, no ground, no perch.`
+    `no shadow, no ground, no perch. No text, no caption, no species label, ` +
+    `no lettering, no watermark, no border or frame anywhere in the image.`
   );
 }
 
