@@ -63,7 +63,7 @@ jobs:
         working-directory: scripts/image-gen
         env:
           BIRD_API_URL: ${{ secrets.BIRD_API_URL }}
-          SPECIES_DATA_URL: ${{ secrets.SPECIES_DATA_URL }}
+          # No SPECIES_DATA_URL: the prompt no longer pulls text enrichment.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # Optional: pin a model if auto-discovery picks a bad one.
           GEMINI_IMAGE_MODEL: ${{ vars.GEMINI_IMAGE_MODEL }}

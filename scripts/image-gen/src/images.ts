@@ -4,7 +4,6 @@ import path from "node:path";
 import { fetchSpeciesList } from "./api.js";
 import { loadConfig } from "./config.js";
 import { generateImage, resolveImageModel } from "./gemini.js";
-import type { EnrichmentMap } from "./types.js";
 
 // Finds species that BirdNET has detected but that have no collage cutout yet,
 // generates an illustration for each with Gemini, and writes the raw files to
@@ -54,18 +53,6 @@ async function existingCutouts(webDir: string): Promise<Set<string>> {
   }
 }
 
-/** Optional descriptive text, reused from the text-enrichment species.json. */
-async function loadFeatures(url: string): Promise<EnrichmentMap> {
-  if (!url) return {};
-  try {
-    const r = await fetch(`${url}?t=${Date.now()}`);
-    if (r.ok) return (await r.json()) as EnrichmentMap;
-  } catch {
-    /* non-fatal: prompts just lose the extra detail */
-  }
-  return {};
-}
-
 /**
  * The locked field-guide style prompt from scripts/cutout-pipeline/README.md.
  * The solid white background is what lets rembg key the subject out cleanly,
@@ -76,15 +63,27 @@ async function loadFeatures(url: string): Promise<EnrichmentMap> {
  * Sterna forsteri" label under the bird on the first real run. A caption is
  * opaque, so rembg keeps it, it lands inside the alpha bbox, and the collage
  * then packs and scales the bird by a box that is mostly lettering.
+ *
+ * The README template has a "<key identifying features>" slot, written for a
+ * human to fill per species. This script previously auto-filled it with
+ * enrich.ts's wikiSummary, which is the *first sentence of the Wikipedia
+ * article* — taxonomy, not appearance ("Forster's tern is a tern in the family
+ * Laridae."). That carried no plumage information and restated the species
+ * name mid-prompt, so the model both invented colours and was nudged toward
+ * writing the name out. The common name alone is a stronger signal: the model
+ * already knows these species. Leave the slot out unless it can be filled with
+ * real hand-written field marks.
  */
-function buildPrompt(comName: string, features: string): string {
+function buildPrompt(comName: string): string {
   return (
-    `A single ${comName} (${features}), side profile, illustrated in a loose ` +
+    `A single ${comName}, side profile, illustrated in a loose ` +
     `hand-drawn ink-and-watercolor field guide style — soft pencil contours, ` +
     `gentle watercolor washes, slightly imperfect lines, naturalistic but ` +
-    `stylized. Full body, facing right. Subject only — solid white background, ` +
-    `no shadow, no ground, no perch. No text, no caption, no species label, ` +
-    `no lettering, no watermark, no border or frame anywhere in the image.`
+    `stylized. Accurate, field-guide-correct plumage and bare-part colours for ` +
+    `the species. Full body, facing right. Subject only — solid white ` +
+    `background, no shadow, no ground, no perch. No text, no caption, no ` +
+    `species label, no lettering, no watermark, no border or frame anywhere ` +
+    `in the image.`
   );
 }
 
@@ -137,15 +136,12 @@ async function main() {
   const model = await resolveImageModel(apiKey, pinnedModel);
   console.log(`[images] using model: ${model}`);
 
-  const features = await loadFeatures(cfg.speciesDataUrl);
   const pending: PendingItem[] = [];
   const failures: string[] = [];
 
   for (const { sci, com, slug } of batch) {
-    // Fall back to the scientific name so the prompt template stays intact.
-    const hint = features[sci]?.wikiSummary || sci;
     try {
-      const bytes = await generateImage(apiKey, model, buildPrompt(com, hint));
+      const bytes = await generateImage(apiKey, model, buildPrompt(com));
       const raw = path.join(RAW_DIR, `${slug}.png`);
       await fs.writeFile(raw, bytes);
       pending.push({ slug, comName: com, sciName: sci, raw });

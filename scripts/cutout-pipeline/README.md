@@ -39,18 +39,35 @@ The script is idempotent — re-running for the same slug overwrites cleanly.
 
 ## Style prompt (locked)
 
-Use this exact prompt with Nano Banana, swapping the species line:
+Use this exact prompt with Nano Banana, swapping the species name:
 
 ```
-A single <Common Name> (<key identifying features>), side profile, illustrated
-in a loose hand-drawn ink-and-watercolor field guide style — soft pencil
-contours, gentle watercolor washes, slightly imperfect lines, naturalistic but
-stylized. Full body, facing right. Subject only — solid white background, no
-shadow, no ground, no perch. No text, no caption, no species label, no
-lettering, no watermark, no border or frame anywhere in the image.
+A single <Common Name>, side profile, illustrated in a loose hand-drawn
+ink-and-watercolor field guide style — soft pencil contours, gentle watercolor
+washes, slightly imperfect lines, naturalistic but stylized. Accurate,
+field-guide-correct plumage and bare-part colours for the species. Full body,
+facing right. Subject only — solid white background, no shadow, no ground, no
+perch. No text, no caption, no species label, no lettering, no watermark, no
+border or frame anywhere in the image.
 ```
 
 rembg keys out the white background reliably.
+
+### On the old `<key identifying features>` slot
+
+Earlier revisions had a parenthetical after the common name. It was meant to be
+hand-written field marks, but the automation auto-filled it with `enrich.ts`'s
+`wikiSummary` — the *first sentence of the Wikipedia article*, which is
+taxonomy, not appearance:
+
+> Forster's tern is a tern in the family Laridae.
+
+That gave the model no plumage information (it invented a rufous cap on a bird
+that has a black one) and restated the species name mid-prompt, which nudged it
+toward captioning. The common name alone is the stronger signal — the model
+already knows these birds — so the slot is gone, replaced by an explicit
+accuracy clause. If you want per-species control, hand-write real field marks;
+do not wire in generic summary text.
 
 Both negative clauses are load-bearing:
 
