@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the network watchdog every 10 minutes
+
+[Timer]
+# First check 5 min after boot (lets WiFi/DHCP settle), then every 10 min.
+OnBootSec=5min
+OnUnitActiveSec=10min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

@@ -160,6 +160,47 @@ ssh $PI "curl -s http://127.0.0.1:8585/health && echo"
 Expected: `{"status":"ok"}`. If the `detections` table is still empty, data
 endpoints return `[]` — that is correct until birds are detected.
 
+```powershell
+# 2f. Network watchdog. Reboots the Pi after 4h with no gateway AND no internet;
+#     restarts cloudflared + birdnet-api after 30 min if only the public tunnel
+#     is dead. Checks every 10 min. The deploy/ files arrived with 2a; if you
+#     are adding this to an existing install, re-run 2a first.
+#     Needs $API_HOSTNAME from STEP 0 — the tunnel check calls
+#     https://$API_HOSTNAME/health from the Pi itself. (Do this AFTER STEP 3
+#     on a fresh install, or that check fails until the tunnel exists.)
+ssh $PI @"
+set -e
+cd ~/birdnet-public/apps/pi-api/deploy
+chmod +x net-watchdog.sh
+sed "s|<API_PUBLIC_HOSTNAME>|$API_HOSTNAME|g" net-watchdog.service | sudo tee /etc/systemd/system/net-watchdog.service >/dev/null
+sudo cp net-watchdog.timer /etc/systemd/system/net-watchdog.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now net-watchdog.timer
+sudo systemctl start net-watchdog.service
+systemctl --no-pager list-timers net-watchdog.timer
+journalctl -t net-watchdog -n 3 --no-pager
+ls -ld /run/net-watchdog
+"@
+```
+
+Expected: the timer listed with a `NEXT` time ~10 min out; no `net-watchdog:`
+log lines (a healthy check logs nothing); and **`/run/net-watchdog` still
+exists after the run** — that directory holds the outage clocks, and if it is
+gone the unit is missing `RuntimeDirectoryPreserve=yes` and the watchdog can
+never escalate. If the tunnel isn't up yet you'll see `tunnel check FAILED` —
+harmless until STEP 3 is done.
+
+> **Why this exists.** On 2026-09-28 the Pi dropped off the network and stayed
+> that way for 8 days — ACT LED solid, BirdNET-Pi still recording, the public
+> site dead — until a manual power-cycle. The watchdog keeps state on tmpfs
+> (`/run/net-watchdog`), so a reboot resets its clocks; worst case during a
+> genuine prolonged outage is one reboot every 4h.
+>
+> **Optional, for hard kernel hangs** the script can't see: enable the SoC
+> hardware watchdog with `RuntimeWatchdogSec=15` in `/etc/systemd/system.conf`
+> (then `sudo systemctl daemon-reexec`). If systemd itself stops responding,
+> the chip resets the board.
+
 ---
 
 ## STEP 3 — Expose the API via Cloudflare Tunnel (on the Pi)

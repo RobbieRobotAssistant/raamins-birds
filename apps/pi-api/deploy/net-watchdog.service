@@ -1,0 +1,34 @@
+[Unit]
+Description=Network watchdog: recover the Pi when it drops off the network
+# Deliberately NO network-online dependency — this must run precisely when
+# the network is broken. Triggered by net-watchdog.timer.
+
+[Service]
+Type=oneshot
+ExecStart=/home/rmostag1/birdnet-public/apps/pi-api/deploy/net-watchdog.sh
+
+# Reboot after this many minutes with no gateway AND no public address
+# (checked every 10 min by the timer). 240 = 4 hours.
+Environment=DOWN_LIMIT_MIN=240
+
+# End-to-end check through Cloudflare and back down the tunnel to this Pi.
+# While the internet is reachable but this fails, restart cloudflared and
+# birdnet-api every TUNNEL_DOWN_LIMIT_MIN; reboot once it has lasted
+# DOWN_LIMIT_MIN. Replace the placeholder during deploy (see DEPLOY.md 2f).
+Environment=TUNNEL_HEALTH_URL=https://<API_PUBLIC_HOSTNAME>/health
+Environment=TUNNEL_DOWN_LIMIT_MIN=30
+
+# Outage clocks live here (tmpfs) so a reboot resets them.
+# RuntimeDirectoryPreserve is REQUIRED: without it systemd deletes the
+# directory every time this oneshot finishes, every run starts from a blank
+# slate, and the watchdog can never accumulate the 30 min / 4 h it needs.
+RuntimeDirectory=net-watchdog
+RuntimeDirectoryPreserve=yes
+Environment=STATE_DIR=/run/net-watchdog
+
+# Runs as root: it has to be able to restart services and reboot. Keep the
+# rest locked down — it only reads the script from /home and writes /run.
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/run/net-watchdog
+PrivateTmp=true
